@@ -6,9 +6,9 @@ import os
 from mistralai import Mistral, UserMessage, SystemMessage
 
 # Initialize API client
-token = os.environ["gtoken"]
+token = os.environ.get("gtoken")
 if not token:
-    raise ValueError("GHP_TOKEN environment variable not set")
+    raise ValueError("gtoken environment variable not set")
 endpoint = "https://models.github.ai/inference"
 model = "mistral-ai/mistral-small-2503"
 client = Mistral(api_key=token, server_url=endpoint)
