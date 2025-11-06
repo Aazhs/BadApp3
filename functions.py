@@ -31,9 +31,15 @@ def show_final():
         img.show()
 
 
-def restart_ss():
-    #Clear all ss
+def restart_ss(result_textbox):
+    #Clear all ss and text
+    global final_string
     final_input.clear()
+    final_string = ""
+    result_textbox.configure(state="normal")
+    result_textbox.delete("1.0", "end")
+    result_textbox.insert("1.0", "API Response will appear here...")
+    result_textbox.configure(state="disabled")
 
 
 def imgToTxt():
@@ -45,6 +51,7 @@ def imgToTxt():
 
 
 def send_to_api(result_textbox):
+    imgToTxt()
     #Send text to api and display response
     global final_string, api_response
     if not final_string.strip():
