@@ -61,7 +61,7 @@ def send_to_api(result_textbox):
         response = client.chat.complete(
             model=model,
             messages=[
-                SystemMessage(content="You are a helpful assistant."),
+                SystemMessage(content="You are a helpful assistant.give only the code no explaination.Give very simple standard code"),
                 UserMessage(content=final_string),
             ],
             temperature=1.0,
