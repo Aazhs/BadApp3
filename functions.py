@@ -20,24 +20,24 @@ api_response = ""
 
 
 def take_ss():
-    """Take a screenshot and add it to final_input"""
+    #Take ss  and add it to final_input
     img1 = pyautogui.screenshot(region=(10, 180, 700, 680))
     final_input.append(img1)
 
 
 def show_final():
-    """Display all screenshots"""
+    #show ss
     for img in final_input:
         img.show()
 
 
 def restart_ss():
-    """Clear all screenshots"""
+    #Clear all ss
     final_input.clear()
 
 
 def imgToTxt():
-    """Extract text from all screenshots"""
+    #extract text from ss
     global final_string
     for i in final_input:
         final_string += pytesseract.image_to_string(i)
@@ -45,7 +45,7 @@ def imgToTxt():
 
 
 def send_to_api(result_textbox):
-    """Send extracted text to API and display response"""
+    #Send text to api and display response
     global final_string, api_response
     if not final_string.strip():
         result_textbox.configure(state="normal")
