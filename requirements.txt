@@ -1,0 +1,6 @@
+pyautogui
+pyscreeze
+Pillow
+pytesseract
+mistralai
+customtkinter
