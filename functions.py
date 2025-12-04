@@ -14,6 +14,11 @@ endpoint = "https://models.github.ai/inference"
 model = "mistral-ai/mistral-small-2503"
 
 
+def get_image_count():
+    #Get the number of screenshots
+    return len(final_input)
+
+
 def take_ss():
     #Take ss  and add it to final_input
     img1 = pyautogui.screenshot(region=(10, 180, 700, 680))
