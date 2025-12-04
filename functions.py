@@ -5,18 +5,13 @@ import pytesseract
 import os
 from mistralai import Mistral, UserMessage, SystemMessage
 
-# Initialize API client
-token = os.environ.get("gtoken")
-if not token:
-    raise ValueError("gtoken environment variable not set")
-endpoint = "https://models.github.ai/inference"
-model = "mistral-ai/mistral-small-2503"
-client = Mistral(api_key=token, server_url=endpoint)
-
 # Global variables
 final_input = []
 final_string = ""
 api_response = ""
+client = None
+endpoint = "https://models.github.ai/inference"
+model = "mistral-ai/mistral-small-2503"
 
 
 def take_ss():
@@ -50,25 +45,41 @@ def imgToTxt():
         print(final_string)
 
 
+def initialize_client(api_key):
+    #Initialize the API client with the provided key
+    global client
+    client = Mistral(api_key=api_key, server_url=endpoint)
+
+
 def send_to_api(result_textbox):
     imgToTxt()
     #Send text to api and display response
-    global final_string, api_response
+    global final_string, api_response, client
+    
+    if client is None:
+        result_textbox.configure(state="normal")
+        result_textbox.delete("1.0", "end")
+        result_textbox.insert("1.0", "Error: API key not set! Please enter your API key first.")
+        result_textbox.configure(state="disabled")
+        return
+    
     if not final_string.strip():
         result_textbox.configure(state="normal")
+        result_textbox.delete("1.0", "end")
         result_textbox.insert("1.0", "No text to send!")
         result_textbox.configure(state="disabled")
         return
 
     try:
         result_textbox.configure(state="normal")
+        result_textbox.delete("1.0", "end")
         result_textbox.insert("1.0", "Loading...")
         result_textbox.configure(state="disabled")
 
         response = client.chat.complete(
             model=model,
             messages=[
-                SystemMessage(content="You are a helpful assistant.give only the code no explaination.Give very simple standard code"),
+                SystemMessage(content="You are a helpful assistant.give only the code no explaination.Give very simple standard code,code must be in c language only"),
                 UserMessage(content=final_string),
             ],
             temperature=1.0,
@@ -77,12 +88,14 @@ def send_to_api(result_textbox):
         )
         api_response = response.choices[0].message.content
         result_textbox.configure(state="normal")
+        result_textbox.delete("1.0", "end")
         result_textbox.insert("1.0", api_response)
         result_textbox.configure(state="disabled")
         print("API Response:")
         print(api_response)
     except Exception as e:
         result_textbox.configure(state="normal")
+        result_textbox.delete("1.0", "end")
         result_textbox.insert("1.0", f"Error: {str(e)}")
         result_textbox.configure(state="disabled")
         print(f"API Error: {e}")
