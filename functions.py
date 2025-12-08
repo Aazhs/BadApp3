@@ -21,7 +21,7 @@ def get_image_count():
 
 def take_ss():
     #Take ss  and add it to final_input
-    img1 = pyautogui.screenshot(region=(10, 180, 700, 680))
+    img1 = pyautogui.screenshot(region=(10, 40, 520, 860))
     final_input.append(img1)
 
 
@@ -45,9 +45,10 @@ def restart_ss(result_textbox):
 def imgToTxt():
     #extract text from ss
     global final_string
+    final_string = ""  # Reset before extracting
     for i in final_input:
         final_string += pytesseract.image_to_string(i)
-        print(final_string)
+    print(final_string)
 
 
 def initialize_client(api_key):
@@ -84,7 +85,7 @@ def send_to_api(result_textbox):
         response = client.chat.complete(
             model=model,
             messages=[
-                SystemMessage(content="You are a helpful assistant.give only the code no explaination.Give very simple standard code,code must be in c language only"),
+                SystemMessage(content="You are a helpful assistant.Give me answer of this code follow all instructions. Use only c language. Give only c code no other text"),
                 UserMessage(content=final_string),
             ],
             temperature=1.0,
