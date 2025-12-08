@@ -25,7 +25,9 @@ def build_exe():
         "--name=BadApp2",
         "--windowed",
         "--onefile",
-        "--icon=icon.ico",  # Optional: add if you have an icon
+        "--exclude-module=build_windows",
+        "--exclude-module=setup",
+        "--noconfirm",  # Overwrite without asking
         "main.py"
     ]
     
