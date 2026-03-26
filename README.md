@@ -2,13 +2,22 @@
 
 Desktop Python app that captures screenshots, extracts text with OCR, and sends it to GitHub Models.
 
-## Run
+## Run (macOS/Linux)
 
 ```bash
 python3 -m venv venv
 . venv/bin/activate
 pip install -r requirements.txt
 python main.py
+```
+
+## Run (Windows)
+
+```cmd
+py -3 -m venv venv
+venv\Scripts\activate
+py -3 -m pip install -r requirements.txt
+py -3 main.py
 ```
 
 ## Windows Prerequisites
@@ -66,12 +75,31 @@ This app uses GitHub Models (`https://models.github.ai/inference`) and needs a G
 
 Windows:
 
-```bash
-python build_windows.py
+```cmd
+py -3 -m venv venv
+venv\Scripts\activate
+py -3 -m pip install -r requirements.txt
+py -3 build_windows.py
 ```
+
+Expected output: `dist\BadApp3.exe`
 
 macOS:
 
 ```bash
-venv/bin/pyinstaller --name="BadApp3" --windowed --onefile main.py
+venv/bin/python -m pip install -r requirements.txt
+venv/bin/python -m pip install pyinstaller
+venv/bin/pyinstaller --name="BadApp3" --windowed main.py
+hdiutil create -volname "BadApp3" -srcfolder dist/BadApp3.app -ov -format UDZO BadApp3.dmg
 ```
+
+Expected outputs: `dist/BadApp3.app` and `BadApp3.dmg`
+
+Notes:
+- Build Windows `.exe` on Windows.
+- Build macOS `.app/.dmg` on macOS.
+- Cross-building is not supported in this setup.
+
+## Detailed Build Troubleshooting
+
+See `BUILD_INSTRUCTIONS.md` for full troubleshooting steps.
