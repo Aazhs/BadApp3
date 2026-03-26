@@ -1,4 +1,4 @@
-# Build Instructions for BadApp2
+# Build Instructions for BadApp3
 
 ## Building on Windows
 
@@ -24,7 +24,22 @@
    ```
 
 4. **Find your executable**
-   - The EXE file will be in: `dist\BadApp2.exe`
+   - The EXE file will be in: `dist\BadApp3.exe`
+
+### If `.exe` is not generated
+
+1. Confirm you are building on Windows (not macOS/Linux).
+2. Run from the project root (same folder as `main.py`).
+3. Use Python launcher explicitly:
+   ```cmd
+   py -3 -m venv venv
+   venv\Scripts\activate
+   py -3 -m pip install -r requirements.txt
+   py -3 -m pip install pyinstaller
+   py -3 -m PyInstaller --name=BadApp3 --windowed --onefile main.py
+   ```
+4. Check whether antivirus quarantined the file in `dist\BadApp3.exe`.
+5. If build logs show errors, open and share `build\BadApp3\warn-BadApp3.txt`.
 
 ### Alternative: Manual Build
 
@@ -36,7 +51,7 @@ pip install -r requirements.txt
 pip install pyinstaller
 
 # Build the executable
-pyinstaller --name=BadApp2 --windowed --onefile main.py
+pyinstaller --name=BadApp3 --windowed --onefile main.py
 ```
 
 ### Important Notes
@@ -48,13 +63,13 @@ pyinstaller --name=BadApp2 --windowed --onefile main.py
 ## Building on macOS (Already Complete)
 
 The macOS build has been completed:
-- App: `dist/BadApp2.app`
-- DMG: `BadApp2.dmg`
+- App: `dist/BadApp3.app`
+- DMG: `BadApp3.dmg`
 
 To rebuild:
 ```bash
-/Users/aarsh/Codes/badApp2/venv/bin/pyinstaller --name="BadApp2" --windowed --onefile main.py
-hdiutil create -volname "BadApp2" -srcfolder dist/BadApp2.app -ov -format UDZO BadApp2.dmg
+/Users/aarsh/Codes/badApp2/venv/bin/pyinstaller --name="BadApp3" --windowed --onefile main.py
+hdiutil create -volname "BadApp3" -srcfolder dist/BadApp3.app -ov -format UDZO BadApp3.dmg
 ```
 
 ## Cross-Platform Notes
