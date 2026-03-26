@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+
+# Tool caches
+.ruff_cache/
+.pytest_cache/
+
+# Build artifacts
+build/
+dist/
+*.spec
+*.dmg
+*.exe
