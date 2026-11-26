@@ -40,6 +40,10 @@ ACCENT_HOVER = ("#185247", "#2b7b67")
 SUCCESS = ("#17604d", "#8cdbc0")
 ERROR = ("#a6313a", "#ffabb1")
 INSTALL_URL = "https://developers.openai.com/codex/cli/"
+CAPTURE_QUESTION = (
+    "Answer the question shown in the screenshot. Start with the answer and keep it short. "
+    "For multiple choice, give the option and its text."
+)
 LOG = logging.getLogger(__name__)
 
 
@@ -126,6 +130,7 @@ class ScreenAssistant(ctk.CTk):
         self.protocol("WM_DELETE_WINDOW", self.close)
 
         self.region: CaptureRegion | None = None
+        self.latest_capture: Image.Image | None = None
         self.images: list[Image.Image] = []
         self.connection = Connection(None, "Checking for a ChatGPT sign-in through Codex…")
         self.events: Queue = Queue()
@@ -193,7 +198,11 @@ class ScreenAssistant(ctk.CTk):
 
         capture_controls = ctk.CTkFrame(context, fg_color="transparent")
         capture_controls.pack(fill="x", padx=14, pady=(2, 0))
-        self.capture_button = self.button(capture_controls, "Capture", self.capture, width=96)
+        self.capture_button = ctk.CTkButton(
+            capture_controls, text="Capture & answer", command=self.capture, width=137, height=32,
+            corner_radius=8, fg_color=ACCENT, hover_color=ACCENT_HOVER, text_color="#ffffff",
+            state="disabled",
+        )
         self.capture_button.pack(side="left", padx=(0, 7))
         self.area_button = self.button(
             capture_controls, "Choose area", lambda: self.capture(choose_area=True), width=102
@@ -209,6 +218,7 @@ class ScreenAssistant(ctk.CTk):
         self.attachment_row = ctk.CTkFrame(context, height=69, fg_color=FIELD, corner_radius=8)
         self.attachment_row.pack(fill="x", padx=14, pady=(3, 12))
         self.attachment_row.pack_propagate(False)
+        self.update_region_label()
         self.update_attachments()
 
         composer = self.card(workspace)
@@ -235,10 +245,8 @@ class ScreenAssistant(ctk.CTk):
         )
         self.model_menu.set(DEFAULT_PRESET)
         self.model_menu.pack(side="left")
-        self.ask_button = ctk.CTkButton(
-            actions, text="Ask ChatGPT", command=self.ask_or_stop, width=117, height=32,
-            corner_radius=8, fg_color=ACCENT, hover_color=ACCENT_HOVER, text_color="#ffffff",
-            state="disabled",
+        self.ask_button = self.button(
+            actions, "Ask ChatGPT", self.ask_or_stop, width=117, state="disabled",
         )
         self.ask_button.pack(side="right")
 
@@ -267,6 +275,10 @@ class ScreenAssistant(ctk.CTk):
             answer_header, "Clear session", self.clear_session, width=98
         )
         self.clear_button.pack(side="right", padx=(0, 7))
+        self.capture_preview_button = self.button(
+            answer_header, "View capture", self.preview_latest_capture, width=97, state="disabled",
+        )
+        self.capture_preview_button.pack(side="right", padx=(0, 7))
         self.result = ctk.CTkTextbox(
             answer_card, height=100, wrap="word", fg_color=FIELD, text_color=TEXT,
             border_width=1, border_color=BORDER, font=ctk.CTkFont(size=14),
@@ -282,20 +294,13 @@ class ScreenAssistant(ctk.CTk):
 
     def update_attachments(self) -> None:
         count = len(self.images)
-        self.attachment_count.configure(text=f"{count} of {MAX_ATTACHMENTS}")
-        enabled = "normal" if count < MAX_ATTACHMENTS else "disabled"
-        self.capture_button.configure(state=enabled)
-        self.add_button.configure(state=enabled)
-        if self.region is None:
-            self.region_label.configure(text="Choose an area to capture")
-        else:
-            left, top, right, bottom = self.region.box
-            self.region_label.configure(text=f"Capture area  ·  {right - left} × {bottom - top} px")
+        self.attachment_count.configure(text=f"{count} of {MAX_ATTACHMENTS} attached")
+        self.add_button.configure(state="normal" if count < MAX_ATTACHMENTS else "disabled")
 
         for child in self.attachment_row.winfo_children():
             child.destroy()
         if not self.images:
-            self.label(self.attachment_row, "No screenshots attached", text_color=MUTED).pack(
+            self.label(self.attachment_row, "No images attached", text_color=MUTED).pack(
                 fill="both", expand=True
             )
             return
@@ -314,15 +319,22 @@ class ScreenAssistant(ctk.CTk):
                 width=22, height=26, fg_color="transparent", hover_color=HOVER, text_color=TEXT,
             ).pack(side="left", anchor="n")
 
+    def update_region_label(self) -> None:
+        if self.region is None:
+            self.region_label.configure(text="Choose an area to capture")
+        else:
+            left, top, right, bottom = self.region.box
+            self.region_label.configure(text=f"Capture area  ·  {right - left} × {bottom - top} px")
+
     def capture_shortcut(self, _event: tk.Event) -> str:
         self.capture()
         return "break"
 
     def capture(self, choose_area: bool = False) -> None:
-        if self.capturing or self.closing:
+        if self.capturing or self.closing or self.cancel is not None:
             return
-        if len(self.images) >= MAX_ATTACHMENTS and not choose_area:
-            self.set_status("Remove an attachment to capture another screenshot.", ERROR)
+        if not choose_area and (not self.connection.executable or self.checking_connection):
+            self.set_status(self.connection.message, ERROR)
             return
         if self.preview is not None and self.preview.winfo_exists():
             self.preview.destroy()
@@ -345,7 +357,7 @@ class ScreenAssistant(ctk.CTk):
         if choose_area or self.region is None or self.region.screen_size != screenshot.size:
             RegionSelector(
                 self, screenshot,
-                lambda region: self.finish_capture(screenshot, region, attach=not choose_area),
+                lambda region: self.finish_capture(screenshot, region, ask=not choose_area),
             )
         else:
             self.finish_capture(screenshot, self.region)
@@ -357,17 +369,21 @@ class ScreenAssistant(ctk.CTk):
         self.update_pin()
 
     def finish_capture(
-        self, screenshot: Image.Image, region: CaptureRegion | None, *, attach: bool = True
+        self, screenshot: Image.Image, region: CaptureRegion | None, *, ask: bool = True
     ) -> None:
         self.restore_window()
         if region is None:
             self.set_status("Capture canceled.")
             return
         self.region = region
-        if attach:
-            self.images.append(prepare_attachment(screenshot.crop(region.box)))
-        self.update_attachments()
-        self.set_status("Screenshot attached." if attach else "Capture area saved.", SUCCESS)
+        self.update_region_label()
+        if not ask:
+            self.set_status("Area saved. Click Capture & answer when ready.", SUCCESS)
+            return
+
+        self.latest_capture = prepare_attachment(screenshot.crop(region.box))
+        self.capture_preview_button.configure(state="normal")
+        self.start_request((self.latest_capture,), default_question=CAPTURE_QUESTION)
 
     def add_images(self) -> None:
         paths = filedialog.askopenfilenames(
@@ -396,13 +412,19 @@ class ScreenAssistant(ctk.CTk):
             self.set_status("Images attached." if added > 1 else "Image attached.", SUCCESS)
 
     def preview_image(self, index: int) -> None:
+        self.show_image(self.images[index], f"Image {index + 1} of {len(self.images)}")
+
+    def preview_latest_capture(self) -> None:
+        if self.latest_capture is not None:
+            self.show_image(self.latest_capture, "Latest capture")
+
+    def show_image(self, image: Image.Image, title: str) -> None:
         if self.preview is not None and self.preview.winfo_exists():
             self.preview.destroy()
         window = ctk.CTkToplevel(self, fg_color=FIELD)
         self.preview = window
-        window.title(f"Screenshot {index + 1} of {len(self.images)}")
+        window.title(title)
         window.transient(self)
-        image = self.images[index]
         size = (round(self.winfo_screenwidth() * 0.85), round(self.winfo_screenheight() * 0.76))
         preview = ImageOps.contain(image, size)
         photo = ctk.CTkImage(preview, size=preview.size)
@@ -423,6 +445,8 @@ class ScreenAssistant(ctk.CTk):
         if self.preview is not None and self.preview.winfo_exists():
             self.preview.destroy()
         self.images.clear()
+        self.latest_capture = None
+        self.capture_preview_button.configure(state="disabled")
         self.question.delete("1.0", "end")
         self.show_answer("")
         self.update_attachments()
@@ -507,10 +531,12 @@ class ScreenAssistant(ctk.CTk):
             )
             self.setup_status.configure(text=message)
             self.check_button.configure(state="disabled" if self.checking_connection else "normal")
-        if self.cancel is None:
-            self.ask_button.configure(
-                state="normal" if connected and not self.checking_connection else "disabled"
-            )
+        ready = "normal" if connected and not self.checking_connection else "disabled"
+        busy = self.cancel is not None
+        self.capture_button.configure(state="disabled" if busy else ready)
+        self.area_button.configure(state="disabled" if busy else "normal")
+        if not busy:
+            self.ask_button.configure(state=ready)
 
     def ask_shortcut(self, _event: tk.Event) -> str:
         if self.cancel is None and self.ask_button.cget("state") == "normal":
@@ -524,11 +550,16 @@ class ScreenAssistant(ctk.CTk):
             self.set_status("Stopping the request…")
             return
 
+        self.start_request(tuple(self.images))
+
+    def start_request(
+        self, images: tuple[Image.Image, ...], *, default_question: str = ""
+    ) -> None:
         executable = self.connection.executable
-        if not executable or self.checking_connection or self.closing:
+        if not executable or self.checking_connection or self.closing or self.cancel is not None:
             return
-        question = self.question.get("1.0", "end-1c").strip()
-        if not question and not self.images:
+        question = self.question.get("1.0", "end-1c").strip() or default_question
+        if not question and not images:
             self.set_status("Enter a question or attach a screenshot.", ERROR)
             self.question.focus_set()
             return
@@ -538,10 +569,11 @@ class ScreenAssistant(ctk.CTk):
         self.ask_button.configure(text="Stop")
         self.clear_button.configure(state="disabled")
         self.model_menu.configure(state="disabled")
+        self.update_connection_display()
         self.set_status(f"Asking {preset}…")
         Thread(
             target=self.run_request,
-            args=(executable, preset, question, tuple(self.images), self.cancel),
+            args=(executable, preset, question, images, self.cancel),
         ).start()
 
     def run_request(

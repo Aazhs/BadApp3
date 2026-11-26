@@ -31,6 +31,7 @@ AUTH_OPTIONS = [
 ]
 
 MODEL_PRESETS = {
+    "GPT-6 Luna · Quick": ("gpt-6-luna", "none"),
     "GPT-6.2 Sol · Light": ("gpt-6.2-sol", "low"),
     "GPT-6.2 Sol · Medium": ("gpt-6.2-sol", "medium"),
     "GPT-6.2 Astra · High": ("gpt-6.2-astra", "high"),

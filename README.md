@@ -39,16 +39,18 @@ Run the Windows version of the Codex CLI so Screen Assistant can find it. If the
 
 ## Ask about your screen
 
-1. Click **Capture** and drag over an area. Future captures reuse that area. Use **Choose area** to change it or **Add images…** to attach saved files.
-2. Click a thumbnail to inspect it or use **×** to remove it. Up to six images can go in a request.
-3. Type a question, or leave it empty to ask about the screenshots. Click **Ask ChatGPT** or press **Cmd+Enter** on macOS or **Ctrl+Enter** on Windows and Linux.
-4. Use **Stop** to stop an in-progress request and **Copy answer** to keep the result. **Clear session** removes the question, images, and answer while keeping your selected capture area.
+1. Click **Choose area** and drag over the part of the screen you want to reuse.
+2. Click **Capture & answer** whenever a new question appears there. The app sends the fresh crop with any question you typed and shows the answer automatically. If you click **Capture & answer** before choosing an area, releasing the drag sends the first capture.
+3. Use **View capture** to check the last screenshot, **Stop** to cancel a request, or **Copy answer** to keep the result. **Clear session** clears the question, images, and answer while keeping your selected area.
 
-The app hides during capture. Screen selection targets the primary display on macOS and Windows. When you click **Ask ChatGPT**, the app sends the question and currently attached images through Codex. Each request starts a fresh Codex session.
+For a text-only question or up to six saved images, use **Add images…** as needed and click **Ask ChatGPT**. You can also press **Cmd+Enter** on macOS or **Ctrl+Enter** on Windows and Linux. Click a thumbnail to inspect an attachment or use **×** to remove it.
+
+The app hides during capture. Screen selection targets the primary display on macOS and Windows. Each request starts a fresh Codex session.
 
 | Model | Reasoning |
 | --- | --- |
-| GPT-6.2 Sol · Light | Default for quick screenshot and text questions |
+| GPT-6 Luna · Quick | Default for short answers to straightforward questions |
+| GPT-6.2 Sol · Light | Light reasoning for more involved questions |
 | GPT-6.2 Sol · Medium | More time to reason through a question |
 | GPT-6.2 Astra · High | Deeper reasoning when your plan offers Astra access |
 

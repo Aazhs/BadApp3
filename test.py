@@ -3,7 +3,7 @@ import sys
 import unittest
 from pathlib import Path
 from threading import Event
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from PIL import Image
 
@@ -16,6 +16,7 @@ from functions import (
     build_command,
     describe_failure,
 )
+from main import CAPTURE_QUESTION, ScreenAssistant
 
 
 class CaptureRegionTests(unittest.TestCase):
@@ -36,8 +37,8 @@ class CaptureRegionTests(unittest.TestCase):
 class CodexTests(unittest.TestCase):
     def test_command_sets_model_and_attaches_every_image(self):
         command = build_command("codex", DEFAULT_PRESET, ["capture-1.png", "capture-2.png"])
-        self.assertIn("gpt-6.2-sol", command)
-        self.assertIn("model_reasoning_effort=low", command)
+        self.assertIn("gpt-6-luna", command)
+        self.assertIn("model_reasoning_effort=none", command)
         self.assertIn("--ephemeral", command)
         self.assertEqual(command[command.index("--sandbox") + 1], "read-only")
         self.assertEqual(command[-3:], ["--image=capture-1.png", "--image=capture-2.png", "-"])
@@ -84,6 +85,34 @@ Path("answer.txt").write_text("Blue", encoding="utf-8")
         message = describe_failure(event, "unrelated stderr")
         self.assertIn("allowance", message)
         self.assertNotIn("private detail", message)
+
+
+class CaptureAnswerTests(unittest.TestCase):
+    def test_capture_submits_only_the_new_crop(self):
+        app = Mock()
+        saved_image = Image.new("RGB", (20, 20), "red")
+        app.images = [saved_image]
+        screen = Image.new("RGB", (100, 100), "blue")
+        region = CaptureRegion((10, 20, 40, 70), screen.size)
+
+        ScreenAssistant.finish_capture(app, screen, region)
+
+        app.start_request.assert_called_once_with(
+            (app.latest_capture,), default_question=CAPTURE_QUESTION
+        )
+        self.assertEqual(app.latest_capture.size, (30, 50))
+        self.assertEqual(app.latest_capture.getpixel((0, 0)), (0, 0, 255))
+        self.assertEqual(app.images, [saved_image])
+
+    def test_choosing_an_area_does_not_send_a_request(self):
+        app = Mock()
+        screen = Image.new("RGB", (100, 100))
+        region = CaptureRegion((10, 20, 40, 70), screen.size)
+
+        ScreenAssistant.finish_capture(app, screen, region, ask=False)
+
+        self.assertEqual(app.region, region)
+        app.start_request.assert_not_called()
 
 
 if __name__ == "__main__":

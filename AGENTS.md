@@ -78,6 +78,7 @@ Run the standard library test suite:
 ```bash
 python -m unittest -v
 python -m unittest test.CaptureRegionTests.test_retina_drag_maps_to_image_pixels
+python -m unittest test.CaptureAnswerTests
 ```
 
 ## Code Style Guidelines
