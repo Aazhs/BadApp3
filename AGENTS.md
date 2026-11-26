@@ -5,9 +5,8 @@ Agent-facing guidance for this repository.
 - Language: Python
 - App type: desktop GUI
 - UI library: `customtkinter`
-- OCR: `pytesseract`
-- Screenshot capture: `pyautogui`
-- API client: `mistralai`
+- Screenshot capture: Pillow and macOS `screencapture`
+- Model access: Codex CLI with ChatGPT sign-in and native image attachments
 - Entrypoint: `main.py`
 - Core helpers: `functions.py`
 - Build files: `build_windows.py`, `setup.py`, `BUILD_INSTRUCTIONS.md`
@@ -27,6 +26,7 @@ Preferred setup:
 python3 -m venv venv
 . venv/bin/activate
 pip install -r requirements.txt
+codex login
 ```
 Helper scripts:
 - `activate_venv.sh` activates `venv`.
@@ -53,11 +53,11 @@ Windows EXE (manual):
 ```bash
 pip install -r requirements.txt
 pip install pyinstaller
-pyinstaller --name=BadApp3 --windowed --onefile main.py
+pyinstaller --name=BadApp3 --windowed --onefile --collect-data customtkinter main.py
 ```
 macOS app + dmg:
 ```bash
-venv/bin/pyinstaller --name="BadApp3" --windowed --onefile main.py
+venv/bin/pyinstaller --name="BadApp3" --windowed --collect-data customtkinter main.py
 hdiutil create -volname "BadApp3" -srcfolder dist/BadApp3.app -ov -format UDZO BadApp3.dmg
 ```
 
@@ -74,26 +74,11 @@ If linting is introduced in a PR:
 - Do not mass-reformat unrelated files unless requested.
 
 ## Test Commands
-Current state:
-- No committed `tests/` directory.
-- No committed test runner config.
-If tests are added with `pytest`:
+Run the standard library test suite:
 ```bash
-pytest
-pytest tests/test_example.py
-pytest tests/test_example.py::test_specific_behavior
-pytest tests/test_example.py::TestFeature::test_specific_behavior
+python -m unittest -v
+python -m unittest test.CaptureRegionTests.test_retina_drag_maps_to_image_pixels
 ```
-If tests are added with stdlib `unittest`:
-```bash
-python -m unittest discover -s tests -p "test*.py"
-python -m unittest tests.test_example
-python -m unittest tests.test_example.TestFeature
-python -m unittest tests.test_example.TestFeature.test_specific_behavior
-```
-Single-test commands (important):
-- `pytest tests/file.py::test_name`
-- `python -m unittest tests.module.Class.test_name`
 
 ## Code Style Guidelines
 
@@ -128,7 +113,7 @@ Single-test commands (important):
 - Broad `except Exception` is acceptable only at UI/app boundaries.
 - Show user-safe error text in the UI.
 - Keep technical details in logs/debug output.
-- Validate preconditions early (API key set, OCR text available).
+- Validate preconditions early (ChatGPT sign-in, question or attachments available).
 
 ### State Management
 - Minimize module-level mutable globals.

@@ -1,105 +1,70 @@
-# BadApp3
+# Screen Assistant
 
-Desktop Python app that captures screenshots, extracts text with OCR, and sends it to GitHub Models.
+Capture a screen region or attach images, then ask ChatGPT about what you see. Screen Assistant uses your signed-in Codex CLI and sends the images directly to the model. You can also ask a text-only question.
 
-## Run (macOS/Linux)
+## Connect your ChatGPT account
+
+Install or update the [Codex CLI](https://developers.openai.com/codex/cli/), then run the following in your terminal. Sign in with the ChatGPT account that has your subscription.
+
+```bash
+codex login
+codex login status
+```
+
+The app reuses that sign-in. Requests use your plan's Codex allowance and any applicable credits. [Codex plan and usage details](https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan)
+
+## Run on macOS or Linux
+
+Use a Python installation with Tk support. On macOS, the python.org installer includes Tk. With Homebrew, install the matching `python-tk` formula for your Python version. On Linux, you may need to install your distribution's Tkinter package.
 
 ```bash
 python3 -m venv venv
 . venv/bin/activate
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 python main.py
 ```
 
-## Run (Windows)
+On macOS, grant Screen Recording permission to the app that launches Python if screen capture fails. You can find the permission under **System Settings → Privacy & Security → Screen & System Audio Recording**. Reopen the app after granting access.
+
+## Run on Windows
 
 ```cmd
 py -3 -m venv venv
-venv\Scripts\activate
-py -3 -m pip install -r requirements.txt
-py -3 main.py
+venv\Scripts\activate.bat
+python -m pip install -r requirements.txt
+python main.py
 ```
 
-## Windows Prerequisites
+Run the Windows version of the Codex CLI so Screen Assistant can find it. If the app cannot find Codex, make sure `codex` is on your PATH or set `CODEX_BIN` to the full path to the CLI executable before launching.
 
-- Install Tesseract OCR (required for screenshot text extraction):
-  `https://github.com/UB-Mannheim/tesseract/wiki`
-- During install, keep default path (`C:\Program Files\Tesseract-OCR\tesseract.exe`).
-- Restart this app after installing Tesseract.
-- If OCR returns empty or errors, verify `tesseract --version` works in Command Prompt.
+## Ask about your screen
 
-## GitHub Models API Key (Beginner-Friendly Guide)
+1. Click **Capture** and drag over an area. Future captures reuse that area. Use **Choose area** to change it or **Add images…** to attach saved files.
+2. Click a thumbnail to inspect it or use **×** to remove it. Up to six images can go in a request.
+3. Type a question, or leave it empty to ask about the screenshots. Click **Ask ChatGPT** or press **Cmd+Enter** on macOS or **Ctrl+Enter** on Windows and Linux.
+4. Use **Stop** to stop an in-progress request and **Copy answer** to keep the result. **Clear session** removes the question, images, and answer while keeping your selected capture area.
 
-This app uses GitHub Models (`https://models.github.ai/inference`) and needs a GitHub Personal Access Token (PAT).
+The app hides during capture. Screen selection targets the primary display on macOS and Windows. When you click **Ask ChatGPT**, the app sends the question and currently attached images through Codex. Each request starts a fresh Codex session.
 
-### Quick Links
+| Model | Reasoning |
+| --- | --- |
+| GPT-6.2 Sol · Light | Default for quick screenshot and text questions |
+| GPT-6.2 Sol · Medium | More time to reason through a question |
+| GPT-6.2 Astra · High | Deeper reasoning when your plan offers Astra access |
 
-- Token settings: `https://github.com/settings/tokens`
-- PAT docs: `https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens`
-- GitHub Models docs: `https://docs.github.com/en/github-models/prototyping-with-ai-models`
-- Models marketplace: `https://github.com/marketplace/models`
+These presets use standard service speed and vary the reasoning effort. [Codex model guidance](https://learn.chatgpt.com/docs/models)
 
-### Step-by-Step
+## Troubleshoot the connection
 
-1. Sign in to your GitHub account.
-2. Open token settings: `https://github.com/settings/tokens`.
-3. Choose one token type:
-   - **Fine-grained token** (recommended for beginners)
-   - **Tokens (classic)**
-4. Click **Generate new token**.
-5. Add a token name (example: `BadApp3 Token`).
-6. Set an expiration date.
-7. Enable model permission: `models:read`.
-8. Click **Generate token**.
-9. Copy the token immediately (GitHub may not show it fully again).
-10. In this app, paste it into **GitHub API key** and click **Connect**.
+- If the connection button says **Set up ChatGPT**, click it to see the sign-in status. After you sign in, click **Check again**.
+- If a model is unavailable, update the CLI and try a Sol preset. Model availability depends on your account and workspace.
+- If your plan is near its Codex usage limit, check your usage in ChatGPT or Codex. Attachments and deeper reasoning can use more of your allowance.
 
-### If Something Fails
+## Build and test
 
-- **Invalid key**: Create a new token and ensure `models:read` is enabled.
-- **Rate limit reached**: Switch model to `openai/gpt-4.1-mini` or `openai/gpt-4o-mini`.
-- **Still stuck**: Open the docs links above and compare each step.
-
-### Plan Notes
-
-- GitHub Free users can still use GitHub Models with free-rate limits.
-- GitHub Pro / Pro Education users typically get better limits for some model tiers.
-
-## Suggested Models
-
-- Default: `openai/gpt-4.1-mini`
-- Alternative fast/cheap: `openai/gpt-4o-mini`
-- Open model option: `meta/llama-3.3-70b-instruct`
-
-## Build
-
-Windows:
-
-```cmd
-py -3 -m venv venv
-venv\Scripts\activate
-py -3 -m pip install -r requirements.txt
-py -3 build_windows.py
-```
-
-Expected output: `dist\BadApp3.exe`
-
-macOS:
+See [Build instructions](BUILD_INSTRUCTIONS.md) for packaging on Windows and macOS.
 
 ```bash
-venv/bin/python -m pip install -r requirements.txt
-venv/bin/python -m pip install pyinstaller
-venv/bin/pyinstaller --name="BadApp3" --windowed main.py
-hdiutil create -volname "BadApp3" -srcfolder dist/BadApp3.app -ov -format UDZO BadApp3.dmg
+python -m py_compile main.py functions.py build_windows.py
+python -m unittest -v
 ```
-
-Expected outputs: `dist/BadApp3.app` and `BadApp3.dmg`
-
-Notes:
-- Build Windows `.exe` on Windows.
-- Build macOS `.app/.dmg` on macOS.
-- Cross-building is not supported in this setup.
-
-## Detailed Build Troubleshooting
-
-See `BUILD_INSTRUCTIONS.md` for full troubleshooting steps.

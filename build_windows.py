@@ -32,6 +32,7 @@ def build_exe():
         "--name=BadApp3",
         "--windowed",
         "--onefile",
+        "--collect-data=customtkinter",
         "--exclude-module=build_windows",
         "--exclude-module=setup",
         "--noconfirm",  # Overwrite without asking

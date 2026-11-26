@@ -4,7 +4,7 @@ APP = ["main.py"]
 DATA_FILES = []
 OPTIONS = {
     "argv_emulation": True,
-    "packages": ["customtkinter", "PIL", "pyautogui", "pytesseract", "mistralai"],
+    "packages": ["customtkinter", "PIL"],
     "iconfile": None,  # Add path to .icns file if you have one
     "plist": {
         "CFBundleName": "BadApp3",

@@ -1,6 +1,2 @@
-pyautogui
-pyscreeze
-Pillow
-pytesseract
-mistralai
-customtkinter
+customtkinter>=5.2,<7
+Pillow>=11,<14

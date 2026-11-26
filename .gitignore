@@ -20,3 +20,6 @@ dist/
 *.spec
 *.dmg
 *.exe
+
+# Local credentials
+.env
