@@ -9,6 +9,7 @@ import time
 from ctypes import CDLL, c_bool
 from dataclasses import dataclass
 from pathlib import Path
+from platform import machine
 from tempfile import TemporaryDirectory
 from threading import Event
 
@@ -112,6 +113,8 @@ def grab_screen() -> Image.Image:
 
 def find_codex() -> str | None:
     override = os.environ.get("CODEX_BIN")
+    if sys.platform == "win32":
+        return find_windows_codex(override)
     if override:
         return shutil.which(os.path.expanduser(override))
 
@@ -124,6 +127,61 @@ def find_codex() -> str | None:
     ]
     search_path = os.pathsep.join([os.environ.get("PATH", ""), *map(str, extra_locations)])
     return shutil.which("codex", path=search_path)
+
+
+def find_windows_codex(override: str | None = None) -> str | None:
+    if override:
+        launcher = shutil.which(os.path.expandvars(os.path.expanduser(override)))
+        return resolve_windows_codex(Path(launcher)) if launcher else None
+
+    # The standalone and npm installers update PATH for new sessions. Look in their
+    # default directories as well so Explorer and already-open terminals can find them.
+    native = shutil.which("codex.exe")
+    if native and Path(native).suffix.lower() == ".exe":
+        return str(Path(native).absolute())
+
+    local_data = os.environ.get("LOCALAPPDATA")
+    if local_data:
+        standalone = Path(local_data) / "Programs" / "OpenAI" / "Codex" / "bin" / "codex.exe"
+        if standalone.is_file():
+            return str(standalone)
+
+    launcher = shutil.which("codex.cmd")
+    if launcher:
+        binary = resolve_windows_codex(Path(launcher))
+        if binary:
+            return binary
+
+    app_data = os.environ.get("APPDATA")
+    if app_data:
+        return resolve_windows_codex(Path(app_data) / "npm" / "codex.cmd")
+    return None
+
+
+def resolve_windows_codex(launcher: Path) -> str | None:
+    if launcher.suffix.lower() == ".exe":
+        return str(launcher.absolute())
+    if launcher.name.lower() != "codex.cmd":
+        return None
+
+    # Use the npm package's native binary so stdin, pipes, and cancellation work
+    # directly, without starting a batch shell and node wrapper.
+    packages = launcher.parent / "node_modules" / "@openai"
+    codex_package = packages / "codex"
+    arm = machine().lower() in {"arm64", "aarch64"}
+    targets = [("arm64", "aarch64")] if arm else []
+    targets.append(("x64", "x86_64"))
+    for arch, cpu in targets:
+        vendor_roots = (
+            codex_package / "node_modules" / "@openai" / f"codex-win32-{arch}" / "vendor",
+            packages / f"codex-win32-{arch}" / "vendor",
+            codex_package / "vendor",
+        )
+        for vendor in vendor_roots:
+            binary = vendor / f"{cpu}-pc-windows-msvc" / "bin" / "codex.exe"
+            if binary.is_file():
+                return str(binary.absolute())
+    return None
 
 
 def codex_environment() -> dict[str, str]:
@@ -145,6 +203,8 @@ def process_options() -> dict:
 def check_connection() -> Connection:
     executable = find_codex()
     if executable is None:
+        if sys.platform == "win32":
+            return Connection(None, "Install the Windows Codex CLI or set CODEX_BIN to codex.exe.")
         return Connection(None, "Install the Codex CLI to connect your ChatGPT account.")
 
     try:

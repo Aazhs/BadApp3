@@ -6,19 +6,21 @@ Usage:
     python build_windows.py
 """
 
+import os
 import subprocess
 import sys
-import os
 from pathlib import Path
+
+PROJECT_DIR = Path(__file__).resolve().parent
 
 
 def install_requirements():
     """Install required packages"""
     print("Installing requirements...")
     subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"]
+        [sys.executable, "-m", "pip", "install", "-r", "requirements.txt", "pyinstaller"],
+        cwd=PROJECT_DIR,
     )
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyinstaller"])
 
 
 def build_exe():
@@ -39,17 +41,16 @@ def build_exe():
         "main.py",
     ]
 
-    subprocess.check_call(cmd)
+    subprocess.check_call(cmd, cwd=PROJECT_DIR)
 
-    exe_path = Path("dist") / "BadApp3.exe"
+    exe_path = PROJECT_DIR / "dist" / "BadApp3.exe"
     if not exe_path.exists():
         raise FileNotFoundError(
             "Build command finished, but dist\\BadApp3.exe was not found. "
             "Check antivirus quarantine and PyInstaller output for errors."
         )
 
-    print("\n✅ Build complete!")
-    print(f"Executable location: {os.path.join('dist', 'BadApp3.exe')}")
+    print(f"\nBuild complete. Executable: {exe_path}")
 
 
 if __name__ == "__main__":
@@ -58,13 +59,13 @@ if __name__ == "__main__":
     print("=" * 50)
 
     if os.name != "nt":
-        print("❌ Windows EXE build must be run on Windows.")
+        print("Windows EXE build must be run on Windows.")
         print("Run this script from Command Prompt or PowerShell on a Windows PC.")
         sys.exit(1)
 
     try:
         install_requirements()
         build_exe()
-    except Exception as e:
-        print(f"\n❌ Error: {e}")
+    except (OSError, subprocess.SubprocessError) as exc:
+        print(f"\nBuild failed: {exc}", file=sys.stderr)
         sys.exit(1)

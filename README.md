@@ -28,14 +28,20 @@ On macOS, grant Screen Recording permission to the app that launches Python if s
 
 ## Run on Windows
 
+1. Install the [Windows Codex CLI](https://github.com/openai/codex#installing-and-running-codex-cli), then run `codex login` in PowerShell and choose ChatGPT sign-in.
+2. Open the latest successful [Windows build](https://github.com/Aazhs/BadApp3/actions/workflows/windows.yml). Download **Screen-Assistant-Windows-x64** under **Artifacts**, extract it, and open `BadApp3.exe`.
+3. When the app shows **ChatGPT connected**, click **Choose area**, then use **Capture & answer**.
+
+The executable is built on Windows x64. It finds the standalone and npm Codex installations automatically. For a custom installation, set `CODEX_BIN` to the full path to `codex.exe` and reopen the app.
+
+To run from source in Command Prompt, use a Python installation that includes Tk.
+
 ```cmd
 py -3 -m venv venv
 venv\Scripts\activate.bat
 python -m pip install -r requirements.txt
 python main.py
 ```
-
-Run the Windows version of the Codex CLI so Screen Assistant can find it. If the app cannot find Codex, make sure `codex` is on your PATH or set `CODEX_BIN` to the full path to the CLI executable before launching.
 
 ## Ask about your screen
 

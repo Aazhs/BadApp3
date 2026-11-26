@@ -14,6 +14,8 @@ python build_windows.py
 
 The output is `dist\BadApp3.exe`. If the build fails, check the PyInstaller output and `build\BadApp3\warn-BadApp3.txt`.
 
+The [Windows build workflow](https://github.com/Aazhs/BadApp3/actions/workflows/windows.yml) also builds the x64 executable on pushes to `main`. It runs the test suite, checks native Codex discovery and screen capture, then launches the packaged GUI before uploading the executable as an artifact.
+
 ## macOS
 
 Use a Python installation with Tk support.

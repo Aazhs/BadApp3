@@ -2,6 +2,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from threading import Event
 from unittest.mock import Mock, patch
 
@@ -15,6 +16,7 @@ from functions import (
     ask_codex,
     build_command,
     describe_failure,
+    find_windows_codex,
 )
 from main import CAPTURE_QUESTION, ScreenAssistant
 
@@ -85,6 +87,42 @@ Path("answer.txt").write_text("Blue", encoding="utf-8")
         message = describe_failure(event, "unrelated stderr")
         self.assertIn("allowance", message)
         self.assertNotIn("private detail", message)
+
+
+class WindowsCodexTests(unittest.TestCase):
+    def test_finds_standalone_install_outside_path(self):
+        with TemporaryDirectory() as folder:
+            binary = Path(folder) / "Programs" / "OpenAI" / "Codex" / "bin" / "codex.exe"
+            binary.parent.mkdir(parents=True)
+            binary.touch()
+            with (
+                patch.dict("functions.os.environ", {"LOCALAPPDATA": folder}, clear=True),
+                patch("functions.shutil.which", return_value=None),
+            ):
+                self.assertEqual(find_windows_codex(), str(binary))
+
+    def test_resolves_npm_launcher_to_native_binary(self):
+        with TemporaryDirectory() as folder:
+            prefix = Path(folder) / "npm"
+            binary = (
+                prefix / "node_modules" / "@openai" / "codex" / "node_modules" / "@openai"
+                / "codex-win32-x64" / "vendor" / "x86_64-pc-windows-msvc" / "bin" / "codex.exe"
+            )
+            binary.parent.mkdir(parents=True)
+            binary.touch()
+            with (
+                patch.dict("functions.os.environ", {"APPDATA": folder}, clear=True),
+                patch("functions.shutil.which", return_value=None),
+                patch("functions.machine", return_value="AMD64"),
+            ):
+                self.assertEqual(find_windows_codex(), str(binary))
+
+    def test_honors_native_executable_override(self):
+        with TemporaryDirectory() as folder:
+            binary = Path(folder) / "custom.exe"
+            binary.touch()
+            with patch("functions.shutil.which", return_value=str(binary)):
+                self.assertEqual(find_windows_codex(str(binary)), str(binary))
 
 
 class CaptureAnswerTests(unittest.TestCase):

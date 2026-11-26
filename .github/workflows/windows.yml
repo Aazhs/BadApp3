@@ -1,0 +1,68 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: '3.13'
+      - name: Build Windows executable
+        run: python build_windows.py
+      - name: Run tests on Windows
+        run: python -m unittest -v
+      - name: Verify native Codex discovery and capture
+        run: |
+          npm install --global @openai/codex@0.172.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $npmPrefix = (npm prefix --global).Trim()
+          $env:Path = "$npmPrefix;$env:Path"
+          @'
+          import subprocess
+
+          from functions import find_codex, grab_screen, process_options
+
+          codex = find_codex()
+          assert codex and codex.lower().endswith(".exe"), codex
+          subprocess.run([codex, "--version"], check=True, **process_options())
+          with grab_screen() as screen:
+              assert screen.width > 0 and screen.height > 0
+              print(f"Captured the primary display at {screen.width}x{screen.height}")
+          '@ | python -
+      - name: Launch packaged app
+        run: |
+          $app = Start-Process -FilePath 'dist\BadApp3.exe' -PassThru
+          try {
+            $deadline = [DateTime]::UtcNow.AddSeconds(30)
+            do {
+              if ($app.HasExited) {
+                throw "BadApp3.exe exited on startup with code $($app.ExitCode)."
+              }
+              $window = Get-Process -Name BadApp3 -ErrorAction SilentlyContinue |
+                Where-Object { $_.MainWindowTitle -eq 'Screen Assistant' } |
+                Select-Object -First 1
+              if ($window) { break }
+              Start-Sleep -Milliseconds 300
+            } while ([DateTime]::UtcNow -lt $deadline)
+            if (-not $window) { throw 'Screen Assistant window never opened.' }
+          } finally {
+            Get-Process -Name BadApp3 -ErrorAction SilentlyContinue |
+              Stop-Process -Force -ErrorAction SilentlyContinue
+          }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: Screen-Assistant-Windows-x64
+          path: dist/BadApp3.exe
+          if-no-files-found: error

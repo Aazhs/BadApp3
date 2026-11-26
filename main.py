@@ -637,5 +637,11 @@ class ScreenAssistant(ctk.CTk):
 
 
 if __name__ == "__main__":
+    if sys.platform == "win32" and getattr(sys, "frozen", False):
+        from ctypes import windll
+
+        # Give the external Codex process Windows' standard DLL search path.
+        if not windll.kernel32.SetDllDirectoryW(None):
+            LOG.warning("Could not restore the default Windows DLL search path")
     ctk.set_appearance_mode("system")
     ScreenAssistant().mainloop()
